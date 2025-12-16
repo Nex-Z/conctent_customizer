@@ -7,6 +7,7 @@ const defaultRuleShape = {
   matchType: "wildcard",
   enabled: true,
   ignoreCase: true,
+  preloadMode: "hide",
   textReplacements: [],
   imageReplacements: []
 };
@@ -71,6 +72,9 @@ const sanitizeRule = (rule = {}) => {
   }
   merged.ignoreCase =
     typeof merged.ignoreCase === "boolean" ? merged.ignoreCase : true;
+  merged.preloadMode = ["hide", "compile", "off"].includes(merged.preloadMode)
+    ? merged.preloadMode
+    : "hide";
   merged.textReplacements = Array.isArray(merged.textReplacements)
     ? merged.textReplacements
     : [];

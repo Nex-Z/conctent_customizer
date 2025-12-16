@@ -25,6 +25,7 @@ const nameInput = document.getElementById("rule-name");
 const patternInput = document.getElementById("rule-pattern");
 const matchTypeInput = document.getElementById("rule-match-type");
 const ignoreCaseInput = document.getElementById("rule-ignore-case");
+const preloadModeInput = document.getElementById("rule-preload-mode");
 const enabledInput = document.getElementById("rule-enabled");
 const textReplacementList = document.getElementById("text-replacements");
 const imageReplacementList = document.getElementById("image-replacements");
@@ -111,6 +112,8 @@ const updateReplacementCounts = () => {
 };
 
 const createReplacementRow = (type, entry = {}) => {
+  const normalizedEntry = { ...entry };
+
   const row = document.createElement("div");
   row.className = "replacement-row collapsed";
   row.dataset.type = type;
@@ -141,22 +144,22 @@ const createReplacementRow = (type, entry = {}) => {
 
   if (type === "text") {
     fields.appendChild(
-      makeInput("查找内容", entry.find ?? "", "find", "原始文本或模式")
+      makeInput("查找内容", normalizedEntry.find ?? "", "find", "原始文本或模式")
     );
     fields.appendChild(
       makeInput(
         "替换为",
-        entry.replace ?? "",
+        normalizedEntry.replace ?? "",
         "replace",
         "新的显示文本"
       )
     );
-    fields.appendChild(makeToggleRow(entry, ["useRegex", "caseSensitive"]));
+    fields.appendChild(makeToggleRow(normalizedEntry, ["useRegex", "caseSensitive"]));
   } else {
     fields.appendChild(
       makeInput(
         "目标图片 URL 或模式",
-        entry.match ?? "",
+        normalizedEntry.match ?? "",
         "match",
         "https://example.com/logo.png"
       )
@@ -164,12 +167,12 @@ const createReplacementRow = (type, entry = {}) => {
     fields.appendChild(
       makeInput(
         "替换为",
-        entry.replace ?? "",
+        normalizedEntry.replace ?? "",
         "replace",
         "https://cdn.example.com/logo.svg"
       )
     );
-    fields.appendChild(makeToggleRow(entry, ["useRegex"]));
+    fields.appendChild(makeToggleRow(normalizedEntry, ["useRegex"]));
   }
 
   const summaryKey = getSummaryFieldKey(type);
@@ -258,7 +261,7 @@ const gatherReplacements = (container, fields, requiredField) =>
       });
 
       const hasContent = fields.some((field) => {
-        if (field === "useRegex" || field === "caseSensitive") {
+        if (["useRegex", "caseSensitive"].includes(field)) {
           return false;
         }
         return Boolean(entry[field]);
@@ -287,6 +290,7 @@ const loadIntoForm = (rule) => {
     : "wildcard";
   enabledInput.checked = Boolean(rule.enabled);
   ignoreCaseInput.checked = rule.ignoreCase !== false;
+  preloadModeInput.value = rule.preloadMode || "hide";
 
   textReplacementList.innerHTML = "";
   imageReplacementList.innerHTML = "";
@@ -308,6 +312,7 @@ const resetForm = () => {
   resetReplacementLists();
   ensurePatternValid();
   ignoreCaseInput.checked = true;
+  preloadModeInput.value = "hide";
 };
 
 const renderRuleTable = () => {
@@ -451,6 +456,7 @@ const handleFormSubmit = async (event) => {
     matchType: matchTypeInput.value,
     enabled: enabledInput.checked,
     ignoreCase: ignoreCaseInput.checked,
+    preloadMode: preloadModeInput.value,
     textReplacements: textEntries,
     imageReplacements: imageEntries
   });
@@ -525,14 +531,18 @@ const init = async () => {
 
 ruleTableBody.addEventListener("click", handleTableClick);
 form.addEventListener("submit", handleFormSubmit);
-cancelEditBtn.addEventListener("click", () => {
-  resetForm();
-  closeDetailPanel();
-});
-openCreateBtn.addEventListener("click", () => {
-  resetForm();
-  openDetailPanel();
-});
+if (cancelEditBtn) {
+  cancelEditBtn.addEventListener("click", () => {
+    resetForm();
+    closeDetailPanel();
+  });
+}
+if (openCreateBtn) {
+  openCreateBtn.addEventListener("click", () => {
+    resetForm();
+    openDetailPanel();
+  });
+}
 addTextBtn.addEventListener("click", () => addTextRow());
 addImageBtn.addEventListener("click", () => addImageRow());
 exportBtn.addEventListener("click", handleExport);
