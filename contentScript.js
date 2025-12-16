@@ -1,4 +1,5 @@
 (async () => {
+
   const helpers = await import(chrome.runtime.getURL("shared/ruleMatcher.js"));
 
   const state = {

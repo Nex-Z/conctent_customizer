@@ -19,6 +19,8 @@ const emptyStateEl = document.getElementById("rules-empty");
 const form = document.getElementById("rule-form");
 const formTitle = document.getElementById("form-title");
 const cancelEditBtn = document.getElementById("cancel-edit");
+const detailPanel = document.getElementById("detail-panel");
+const formPlaceholder = document.getElementById("form-placeholder");
 const nameInput = document.getElementById("rule-name");
 const patternInput = document.getElementById("rule-pattern");
 const matchTypeInput = document.getElementById("rule-match-type");
@@ -32,6 +34,9 @@ const exportBtn = document.getElementById("export-rules");
 const importBtn = document.getElementById("import-rules");
 const importInput = document.getElementById("import-input");
 const statusOutput = document.getElementById("status");
+const openCreateBtn = document.getElementById("open-create");
+const textCountEl = document.getElementById("text-count");
+const imageCountEl = document.getElementById("image-count");
 
 const state = {
   rules: [],
@@ -41,6 +46,20 @@ const state = {
 const setStatus = (message, isError = false) => {
   statusOutput.textContent = message;
   statusOutput.classList.toggle("error", isError);
+};
+
+const openDetailPanel = () => {
+  detailPanel.classList.remove("collapsed");
+  form.hidden = false;
+  formPlaceholder.hidden = true;
+  cancelEditBtn.hidden = false;
+};
+
+const closeDetailPanel = () => {
+  detailPanel.classList.add("collapsed");
+  form.hidden = true;
+  formPlaceholder.hidden = false;
+  cancelEditBtn.hidden = true;
 };
 
 const fetchRules = async () => {
@@ -67,29 +86,64 @@ const isRegexValid = (pattern) => {
   }
 };
 
+const getSummaryFieldKey = (type) => (type === "text" ? "find" : "match");
+
+const updateReplacementSummary = (row) => {
+  const summaryBtn = row.querySelector(".replacement-summary");
+  if (!summaryBtn) {
+    return;
+  }
+  const key = getSummaryFieldKey(row.dataset.type);
+  const input = row.querySelector(`[data-field="${key}"]`);
+  const value = input?.value?.trim();
+  summaryBtn.textContent = `查找：${value || "（未填写）"}`;
+};
+
+const updateReplacementCounts = () => {
+  if (textCountEl) {
+    const count = textReplacementList.querySelectorAll(".replacement-row").length;
+    textCountEl.textContent = `${count} 条`;
+  }
+  if (imageCountEl) {
+    const count = imageReplacementList.querySelectorAll(".replacement-row").length;
+    imageCountEl.textContent = `${count} 条`;
+  }
+};
+
 const createReplacementRow = (type, entry = {}) => {
   const row = document.createElement("div");
-  row.className = "replacement-row";
+  row.className = "replacement-row collapsed";
   row.dataset.type = type;
 
   const title = document.createElement("header");
-  const label = document.createElement("strong");
-  label.textContent = type === "text" ? "文本替换" : "图片替换";
+  const summaryBtn = document.createElement("button");
+  summaryBtn.type = "button";
+  summaryBtn.className = "replacement-summary";
+  summaryBtn.addEventListener("click", () => {
+    row.classList.toggle("collapsed");
+  });
 
   const removeBtn = document.createElement("button");
   removeBtn.type = "button";
   removeBtn.textContent = "删除";
   removeBtn.className = "secondary";
-  removeBtn.addEventListener("click", () => row.remove());
+  removeBtn.addEventListener("click", () => {
+    row.remove();
+    updateReplacementCounts();
+  });
 
-  title.append(label, removeBtn);
+  title.append(summaryBtn, removeBtn);
   row.appendChild(title);
 
+  const fields = document.createElement("div");
+  fields.className = "replacement-fields";
+  row.appendChild(fields);
+
   if (type === "text") {
-    row.appendChild(
+    fields.appendChild(
       makeInput("查找内容", entry.find ?? "", "find", "原始文本或模式")
     );
-    row.appendChild(
+    fields.appendChild(
       makeInput(
         "替换为",
         entry.replace ?? "",
@@ -97,9 +151,9 @@ const createReplacementRow = (type, entry = {}) => {
         "新的显示文本"
       )
     );
-    row.appendChild(makeToggleRow(entry, ["useRegex", "caseSensitive"]));
+    fields.appendChild(makeToggleRow(entry, ["useRegex", "caseSensitive"]));
   } else {
-    row.appendChild(
+    fields.appendChild(
       makeInput(
         "目标图片 URL 或模式",
         entry.match ?? "",
@@ -107,7 +161,7 @@ const createReplacementRow = (type, entry = {}) => {
         "https://example.com/logo.png"
       )
     );
-    row.appendChild(
+    fields.appendChild(
       makeInput(
         "替换为",
         entry.replace ?? "",
@@ -115,8 +169,15 @@ const createReplacementRow = (type, entry = {}) => {
         "https://cdn.example.com/logo.svg"
       )
     );
-    row.appendChild(makeToggleRow(entry, ["useRegex"]));
+    fields.appendChild(makeToggleRow(entry, ["useRegex"]));
   }
+
+  const summaryKey = getSummaryFieldKey(type);
+  const summaryInput = row.querySelector(`[data-field="${summaryKey}"]`);
+  if (summaryInput) {
+    summaryInput.addEventListener("input", () => updateReplacementSummary(row));
+  }
+  updateReplacementSummary(row);
 
   return row;
 };
@@ -165,10 +226,12 @@ const formatKeyLabel = (key) => {
 
 const addTextRow = (entry = {}) => {
   textReplacementList.appendChild(createReplacementRow("text", entry));
+  updateReplacementCounts();
 };
 
 const addImageRow = (entry = {}) => {
   imageReplacementList.appendChild(createReplacementRow("image", entry));
+  updateReplacementCounts();
 };
 
 const resetReplacementLists = () => {
@@ -214,8 +277,8 @@ const gatherReplacements = (container, fields, requiredField) =>
 
 const loadIntoForm = (rule) => {
   formTitle.textContent = "编辑规则";
-  cancelEditBtn.hidden = false;
   state.editingId = rule.id;
+  openDetailPanel();
 
   nameInput.value = rule.name ?? "";
   patternInput.value = rule.urlPattern ?? "";
@@ -242,7 +305,6 @@ const resetForm = () => {
   form.reset();
   state.editingId = null;
   formTitle.textContent = "创建规则";
-  cancelEditBtn.hidden = true;
   resetReplacementLists();
   ensurePatternValid();
   ignoreCaseInput.checked = true;
@@ -271,7 +333,7 @@ const renderRuleTable = () => {
 
     const actionsCell = document.createElement("td");
     const editBtn = document.createElement("button");
-    editBtn.textContent = "编辑";
+    editBtn.textContent = "查看/编辑";
     editBtn.dataset.action = "edit";
     editBtn.dataset.id = rule.id;
     const deleteBtn = document.createElement("button");
@@ -313,6 +375,7 @@ const handleTableClick = async (event) => {
       setStatus("规则已删除。");
       if (state.editingId === ruleId) {
         resetForm();
+        closeDetailPanel();
       }
     }
   }
@@ -325,6 +388,8 @@ const applyPrefillFromQuery = () => {
     return;
   }
 
+  resetForm();
+  openDetailPanel();
   const decoded = decodeURIComponent(createFor);
   patternInput.value = decoded;
   matchTypeInput.value = "exact";
@@ -401,6 +466,7 @@ const handleFormSubmit = async (event) => {
   renderRuleTable();
   setStatus("规则已保存。");
   resetForm();
+  closeDetailPanel();
 };
 
 const handleExport = async () => {
@@ -452,13 +518,21 @@ const handleImport = async (file) => {
 const init = async () => {
   await fetchRules();
   renderRuleTable();
-  resetReplacementLists();
+  resetForm();
+  closeDetailPanel();
   applyPrefillFromQuery();
 };
 
 ruleTableBody.addEventListener("click", handleTableClick);
 form.addEventListener("submit", handleFormSubmit);
-cancelEditBtn.addEventListener("click", resetForm);
+cancelEditBtn.addEventListener("click", () => {
+  resetForm();
+  closeDetailPanel();
+});
+openCreateBtn.addEventListener("click", () => {
+  resetForm();
+  openDetailPanel();
+});
 addTextBtn.addEventListener("click", () => addTextRow());
 addImageBtn.addEventListener("click", () => addImageRow());
 exportBtn.addEventListener("click", handleExport);

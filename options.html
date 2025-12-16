@@ -22,8 +22,11 @@
       <main class="layout">
         <section class="panel">
           <div class="panel-head">
-            <h2>规则列表</h2>
-            <span id="rule-count" class="muted"></span>
+            <div>
+              <h2>规则列表</h2>
+              <span id="rule-count" class="muted"></span>
+            </div>
+            <button id="open-create" type="button" class="primary">+ 新建规则</button>
           </div>
           <div id="rules-empty" class="empty-state">
             <p>暂无规则，请使用右侧表单创建。</p>
@@ -42,14 +45,17 @@
           </table>
         </section>
 
-        <section class="panel">
+        <section class="panel detail-panel collapsed" id="detail-panel">
           <div class="panel-head">
             <h2 id="form-title">创建规则</h2>
-            <button id="cancel-edit" type="button" class="link-button" hidden>
-              取消编辑
+            <button id="cancel-edit" type="button" class="link-button">
+              收起
             </button>
           </div>
-          <form id="rule-form">
+          <div id="form-placeholder" class="placeholder">
+            请选择左侧规则或点击“新建规则”打开详情。
+          </div>
+          <form id="rule-form" hidden>
             <label>
               规则名称
               <input type="text" id="rule-name" required placeholder="例如：产品详情页微调" />
@@ -86,7 +92,10 @@
             </label>
 
             <fieldset>
-              <legend>文本替换</legend>
+              <legend>
+                文本替换
+                <span id="text-count" class="count-chip">0 条</span>
+              </legend>
               <div id="text-replacements" class="replacement-list"></div>
               <button id="add-text-replacement" type="button" class="secondary">
                 + 添加文本替换
@@ -94,7 +103,10 @@
             </fieldset>
 
             <fieldset>
-              <legend>图片替换</legend>
+              <legend>
+                图片替换
+                <span id="image-count" class="count-chip">0 条</span>
+              </legend>
               <div id="image-replacements" class="replacement-list"></div>
               <button id="add-image-replacement" type="button" class="secondary">
                 + 添加图片替换

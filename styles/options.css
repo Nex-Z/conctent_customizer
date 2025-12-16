@@ -13,7 +13,6 @@ body {
 }
 
 .page {
-  max-width: 1100px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -69,9 +68,27 @@ body {
   font-size: 1.2rem;
 }
 
+.panel-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .muted {
   color: #94a3b8;
   font-size: 0.9rem;
+}
+
+.count-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  margin-left: 6px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: #475569;
+  background: #e2e8f0;
 }
 
 .rule-table {
@@ -171,18 +188,54 @@ legend {
   flex-direction: column;
   gap: 8px;
   background: #fdfdfd;
+  transition: background 0.15s ease;
 }
 
 .replacement-row header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 
 .replacement-row .controls {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.replacement-summary {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.replacement-summary::before {
+  content: "▶";
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.replacement-row:not(.collapsed) .replacement-summary::before {
+  content: "▼";
+}
+
+.replacement-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.replacement-row.collapsed .replacement-fields {
+  display: none;
 }
 
 .replacement-row input[type="text"] {
@@ -197,10 +250,13 @@ button {
   font-size: 0.95rem;
   background: #e2e8f0;
   color: #0f172a;
+  /* 立体边框效果 */
+  transition: all 0.3s ease;
 }
 
 button.secondary {
-  background: #f1f5f9;
+  background: red;
+  color: #fff;
 }
 
 button.primary {
@@ -237,6 +293,30 @@ button.link-button {
 
 .status.error {
   color: #dc2626;
+}
+
+#form-placeholder {
+  display: none;
+}
+
+.placeholder {
+  border: 1px dashed #cbd5f5;
+  border-radius: 8px;
+  padding: 16px;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.detail-panel.collapsed #rule-form {
+  display: none;
+}
+
+.detail-panel.collapsed #form-placeholder {
+  display: block;
+}
+
+.detail-panel.collapsed .link-button {
+  visibility: hidden;
 }
 
 @media (max-width: 1000px) {
