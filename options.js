@@ -336,6 +336,14 @@ const loadIntoForm = (rule) => {
   if (rule.imageReplacements.length === 0) {
     addImageRow();
   }
+  
+  // 确保高级设置展开以显示当前设置
+  if (rule.preloadMode && rule.preloadMode !== "hide") {
+    const advancedSettings = document.querySelector('.advanced-settings');
+    if (advancedSettings) {
+      advancedSettings.open = true;
+    }
+  }
 };
 
 const resetForm = () => {
@@ -346,7 +354,7 @@ const resetForm = () => {
   cssRulesTextarea.value = "";
   ensurePatternValid();
   ignoreCaseInput.checked = true;
-  preloadModeInput.value = "hide";
+  preloadModeInput.value = "hide"; // 默认设为推荐的隐藏模式
 };
 
 const renderRuleTable = () => {

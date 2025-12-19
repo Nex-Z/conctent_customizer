@@ -10,11 +10,11 @@
       <header class="header">
         <div>
           <h1>内容定制器</h1>
-          <p>针对特定 URL 管理文本和图片替换规则。</p>
+          <p>针对特定 URL 管理文本和图片替换规则</p>
         </div>
         <div class="io-controls">
-          <button id="export-rules" type="button">导出 JSON</button>
-          <button id="import-rules" type="button">导入 JSON</button>
+          <button id="export-rules" type="button">📤 导出规则</button>
+          <button id="import-rules" type="button">📥 导入规则</button>
           <input id="import-input" type="file" accept="application/json" hidden />
         </div>
       </header>
@@ -24,12 +24,12 @@
           <div class="panel-head">
             <div>
               <h2>规则列表</h2>
-              <span id="rule-count" class="muted"></span>
+              <span id="rule-count" class="muted">共 0 条规则</span>
             </div>
             <button id="open-create" type="button" class="primary">+ 新建规则</button>
           </div>
           <div id="rules-empty" class="empty-state">
-            <p>暂无规则，请使用右侧表单创建。</p>
+            <p>暂无规则，请使用右侧表单创建</p>
           </div>
           <table id="rules-table" class="rule-table" aria-label="规则列表">
             <thead>
@@ -53,7 +53,7 @@
             </button>
           </div>
           <div id="form-placeholder" class="placeholder">
-            请选择左侧规则或点击“新建规则”打开详情。
+            请选择左侧规则或点击"新建规则"打开详情
           </div>
           <form id="rule-form" hidden>
             <label>
@@ -91,14 +91,22 @@
               忽略 URL 匹配大小写
             </label>
 
-            <label>
-              首屏处理
-              <select id="rule-preload-mode">
-                <option value="hide">隐藏原内容后展示</option>
-                <option value="compile">仅预编译（不隐藏）</option>
-                <option value="off">关闭预处理</option>
-              </select>
-            </label>
+            <details class="advanced-settings">
+              <summary class="advanced-toggle">⚙️ 高级设置</summary>
+              <div class="advanced-content">
+                <label>
+                  首屏处理
+                  <select id="rule-preload-mode">
+                    <option value="hide">隐藏原内容后展示（推荐）</option>
+                    <option value="compile">仅预编译（不隐藏）</option>
+                    <option value="off">关闭预处理</option>
+                  </select>
+                </label>
+                <p class="muted" style="font-size: 0.85rem; margin-top: 8px;">
+                  隐藏原内容可避免页面闪烁，预处理可提升性能
+                </p>
+              </div>
+            </details>
 
             <fieldset>
               <legend>
@@ -107,7 +115,7 @@
               </legend>
               <div id="text-replacements" class="replacement-list"></div>
               <button id="add-text-replacement" type="button" class="secondary">
-                + 添加文本替换
+                ➕ 添加文本替换
               </button>
             </fieldset>
 
@@ -118,7 +126,7 @@
               </legend>
               <div id="image-replacements" class="replacement-list"></div>
               <button id="add-image-replacement" type="button" class="secondary">
-                + 添加图片替换
+                ➕ 添加图片替换
               </button>
             </fieldset>
 
@@ -131,20 +139,25 @@
                   CSS样式
                   <textarea id="css-rules" rows="10" placeholder="/* 在这里输入CSS样式，就像编写CSS文件一样 */
 .card {
-  background: red;
-  border: 1px solid blue;
+  background: #ff6b6b;
+  border: 1px solid #ffa500;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .header {
-  color: white;
-  font-size: 18px;
+  color: #2c3e50;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
 }"></textarea>
                 </label>
               </div>
             </fieldset>
 
             <div class="form-actions">
-              <button type="submit" class="primary">保存规则</button>
+              <button type="submit" class="primary">💾 保存规则</button>
             </div>
           </form>
         </section>
