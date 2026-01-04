@@ -288,7 +288,12 @@
           return;
         }
         if (attr === "__bgimage") {
-          element.setAttribute("style", value || "");
+          // 恢复背景图片：如果原始 style 属性为空，则移除内联 backgroundImage
+          if (!value) {
+            element.style.backgroundImage = '';
+          } else {
+            element.setAttribute("style", value);
+          }
           return;
         }
         if (value === null || typeof value === "undefined") {
@@ -370,44 +375,53 @@
 
     const processBackgroundImage = (element) => {
       const computed = window.getComputedStyle(element);
-      const backgroundImages = [
-        element.style.backgroundImage,
-        computed.backgroundImage
-      ].filter(Boolean);
+      const inlineStyle = element.style.backgroundImage;
+      const computedStyle = computed.backgroundImage;
 
-      if (!backgroundImages.length) {
+      // 获取有效的背景图片值
+      const bgValue = inlineStyle || computedStyle;
+      if (!bgValue || bgValue === 'none') {
         return;
       }
 
-      backgroundImages.forEach((bgValue) => {
-        const urls = [...bgValue.matchAll(/url\\((\"|')?(.*?)\\1\\)/gi)];
-        urls.forEach((match) => {
-          const url = match[2];
-          if (!url) {
-            return;
-          }
-          for (const pattern of state.imagePatterns) {
-            if (pattern.test(url)) {
-              let record = attributeOriginalValues.get(element);
-              if (!record) {
-                record = {};
-                attributeOriginalValues.set(element, record);
-              }
-              if (!("__bgimage" in record)) {
-                record.__bgimage = element.getAttribute("style") || "";
-              }
-              const inlineStyle = element.getAttribute("style") || "";
-              const replacedStyle = inlineStyle.replace(
-                url,
-                pattern.replacement || url
-              );
-              element.setAttribute("style", replacedStyle);
-              touchedAttributeElements.add(element);
-              break;
+      // 修正后的正则表达式：匹配 url("...") 或 url('...') 或 url(...)
+      const urlRegex = /url\((["']?)([^)"']+)\1\)/gi;
+      let match;
+      let hasReplacement = false;
+      let newBgValue = bgValue;
+
+      while ((match = urlRegex.exec(bgValue)) !== null) {
+        const url = match[2];
+        if (!url) {
+          continue;
+        }
+
+        for (const pattern of state.imagePatterns) {
+          if (pattern.test(url)) {
+            let record = attributeOriginalValues.get(element);
+            if (!record) {
+              record = {};
+              attributeOriginalValues.set(element, record);
             }
+            if (!("__bgimage" in record)) {
+              // 保存原始的完整 style 属性
+              record.__bgimage = element.getAttribute("style") || "";
+            }
+
+            // 替换 URL
+            const newUrl = pattern.replacement || url;
+            newBgValue = newBgValue.replace(url, newUrl);
+            hasReplacement = true;
+            break;
           }
-        });
-      });
+        }
+      }
+
+      if (hasReplacement) {
+        // 无论背景图来自内联样式还是CSS样式表，都通过设置内联样式来覆盖
+        element.style.backgroundImage = newBgValue;
+        touchedAttributeElements.add(element);
+      }
     };
 
     const scope =
@@ -552,9 +566,86 @@
     });
   };
 
+  /**
+   * 为 CSS 属性值添加 !important（如果还没有的话）
+   * 处理格式: "property: value;" => "property: value !important;"
+   * 注意：需要正确处理含有冒号的值，如 url(data:image/...) 或 content: ":"
+   */
+  const addImportantToCSS = (cssText) => {
+    // 匹配 CSS 规则块: selector { properties }
+    return cssText.replace(/\{([^}]*)\}/g, (match, innerBlock) => {
+      // 分割属性声明，但要处理可能包含分号的值（如 url 中的 data URI）
+      const declarations = [];
+      let current = '';
+      let parenDepth = 0;
+      let inString = false;
+      let stringChar = '';
+
+      for (let i = 0; i < innerBlock.length; i++) {
+        const char = innerBlock[i];
+
+        // 处理字符串
+        if ((char === '"' || char === "'") && innerBlock[i - 1] !== '\\') {
+          if (!inString) {
+            inString = true;
+            stringChar = char;
+          } else if (char === stringChar) {
+            inString = false;
+          }
+        }
+
+        // 处理括号深度
+        if (!inString) {
+          if (char === '(') parenDepth++;
+          if (char === ')') parenDepth--;
+        }
+
+        // 只有在不在字符串和括号内时，分号才是声明分隔符
+        if (char === ';' && !inString && parenDepth === 0) {
+          if (current.trim()) {
+            declarations.push(current.trim());
+          }
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+
+      // 处理最后一个声明（可能没有分号结尾）
+      if (current.trim()) {
+        declarations.push(current.trim());
+      }
+
+      // 为每个声明添加 !important
+      const processedDeclarations = declarations.map(decl => {
+        // 找到第一个冒号作为属性名和值的分隔
+        const colonIndex = decl.indexOf(':');
+        if (colonIndex === -1) return decl;
+
+        const property = decl.slice(0, colonIndex).trim();
+        const value = decl.slice(colonIndex + 1).trim();
+
+        // 如果已经有 !important，保持原样
+        if (value.toLowerCase().endsWith('!important')) {
+          return `${property}: ${value}`;
+        }
+
+        return `${property}: ${value} !important`;
+      });
+
+      return `{ ${processedDeclarations.join('; ')}${processedDeclarations.length ? ';' : ''} }`;
+    });
+  };
+
   const applyStyleReplacements = () => {
+    // 确保有可用的容器元素（head 或 documentElement）
+    const container = document.head || document.documentElement;
+    if (!container) {
+      return;
+    }
+
     // 移除之前应用的样式
-    const existingStyles = document.head.querySelector('style[data-content-customizer-styles]');
+    const existingStyles = container.querySelector('style[data-content-customizer-styles]');
     if (existingStyles) {
       existingStyles.remove();
     }
@@ -567,14 +658,15 @@
     // 创建新的样式元素
     const styleElement = document.createElement('style');
     styleElement.setAttribute('data-content-customizer-styles', '');
-    
+
     let cssText = '';
     state.cssRules.forEach(rule => {
-      cssText += `\n${rule}\n`;
+      // 为每个规则添加 !important 以确保覆盖原有样式
+      cssText += `\n${addImportantToCSS(rule)}\n`;
     });
-    
+
     styleElement.textContent = cssText;
-    document.head.appendChild(styleElement);
+    container.appendChild(styleElement);
   };
 
   const applyAll = () => {
