@@ -1,52 +1,83 @@
 # Content Customizer
 
-一个基于 Chrome Manifest V3 的网页内容定制扩展。通过自定义规则，你可以在浏览任意站点时实时替换文本、链接锚点、表单 placeholder/title、图片 `src` 以及行内 `background-image`，获得统一的演示或调试体验。
+一个 Chrome 扩展（Manifest V3），可在浏览任意网页时**实时替换文本、图片、样式**，适用于演示、调试或个性化定制场景。
 
-## ✨ 功能亮点
+---
 
-- **规则化管理**：在 Options 页面批量查看、折叠/展开、导入/导出规则。
-- **多维替换**：
-  - 文本 + 属性：正文、按钮、链接文字，以及 `placeholder/title/aria/value` 等属性全部覆盖。
-  - 图片：支持 `<img>` `src`/`srcset`，以及 `style="background-image:url(...)"` 等行内背景图。
-- **灵活匹配**：精确/通配/正则模式，支持大小写控制与首屏处理策略（默认隐藏原内容以防止闪烁）。
-- **首屏无闪烁**：命中规则时会短暂隐藏页面，待替换完成后再展示，300 ms 兜底防止白屏。
-- **实时控制**：Popup 快速查看当前 URL 的匹配规则，支持逐条或一键启停。
-- **跨设备同步**：支持使用 Chrome 同步功能在不同设备间共享规则设置。
+## ✨ 功能特性
 
-## 🚀 安装与使用
+| 能力 | 说明 |
+| --- | --- |
+| **文本替换** | 支持正文、按钮、链接及 `placeholder` / `title` / `aria-*` / `value` 等属性 |
+| **图片替换** | 匹配 `<img>` 的 `src` / `srcset`，以及行内 `background-image` |
+| **CSS 样式覆盖** | 通过选择器注入自定义样式 |
+| **多种匹配模式** | 精确、包含、通配符 (`*`) 、正则表达式，支持大小写控制 |
+| **首屏无闪烁** | 命中规则时隐藏原内容，替换完成后再展示（300ms 兜底） |
+| **跨设备同步** | 可选使用 `chrome.storage.sync` 在多设备间共享规则 |
+| **导入/导出** | 通过 JSON 文件备份和迁移规则 |
 
-1. 克隆或下载本仓库：
+---
+
+## 🎯 使用场景
+
+- **产品演示**：临时替换页面中的公司名称、Logo、敏感数据，快速生成演示素材
+- **UI 调试**：修改文案、图片，验证不同内容长度或样式的显示效果
+- **隐私保护**：浏览时自动遮盖个人信息、账号 ID 等敏感内容
+- **本地化测试**：模拟多语言环境，检查翻译后的布局兼容性
+- **竞品分析**：替换竞品页面元素，对比自有产品的视觉效果
+
+---
+
+## 🚀 安装
+
+1. **克隆仓库**
    ```bash
-   git clone https://github.com/your/repo.git content-customizer
+   git clone https://github.com/Nex-Z/conctent_customizer
    ```
-2. 打开 Chrome → 地址栏输入 `chrome://extensions/`，右上角开启 **开发者模式**。
-3. 点击 **加载已解压的扩展程序**，选择仓库根目录。
-4. 通过工具栏图标弹出的 Popup 控制当前页面规则；在 Options 页面创建/管理规则。
+2. **加载扩展**  
+   打开 `chrome://extensions/` → 开启 **开发者模式** → **加载已解压的扩展程序** → 选择仓库根目录
 
-> **注**：本项目无需额外构建步骤，修改文件后在扩展页点击"重新加载"即可生效。
+> 本项目无需构建，修改代码后点击扩展页"重新加载"即可生效。
 
-## 🧱 项目结构
+---
+
+## 📖 使用指南
+
+- **Popup**：点击工具栏图标，查看当前页面已匹配的规则，快速启用/禁用
+- **Options**：点击"规则设置"进入管理页面，创建、编辑、导入/导出规则
+- **快速创建**：在 Popup 中点击"快速创建"，自动预填当前 URL
+
+---
+
+## 📁 项目结构
 
 ```
-├── background.js          # Service worker：规则存储、消息中转
-├── contentScript.js       # DOM 文本/图片/属性/背景替换核心逻辑
-├── manifest.json          # Chrome MV3 配置
-├── options.html/.js/.css  # 规则管理（折叠面板、表单）
-├── popup.html/.js/.css    # 当前页面规则状态/快速操作
-├── shared/ruleMatcher.js  # URL & 规则匹配工具
-├── prd.md                 # 产品需求文档
-└── README.md              # 说明文档（本文件）
+├── manifest.json           # Chrome MV3 配置
+├── background.js           # Service Worker：规则存储与消息分发
+├── contentScript.js        # 内容脚本：DOM 替换核心逻辑
+├── popup.html / popup.js   # 弹出面板：当前页规则状态
+├── options.html / options.js # 规则管理页
+├── shared/
+│   └── ruleMatcher.js      # URL 匹配与规则处理工具
+├── styles/
+│   ├── popup.css
+│   └── options.css
+└── icons/                  # 扩展图标
 ```
 
-## 🧰 开发提示
+---
 
-- **调试 content script**：在目标页面打开 DevTools（Sources → Content scripts），即可查看 `contentScript.js` 日志、断点。
-- **规则存储**：使用 `chrome.storage.local`，导入/导出 JSON 时会保留 `preloadMode`、替换条目、正则等信息。
-- **性能关注点**：
-  - 确保 `run_at: document_start`，配合首屏隐藏防止闪烁。
-  - MutationObserver 已做 100 ms 去抖，若需扩展请保持批量写 DOM。
-  - 所有替换都会记录原值，通过 WeakMap 在禁用/切换规则时恢复。
+## 🛠 开发提示
+
+- **调试脚本**：在目标页面的 DevTools → Sources → Content scripts 中查看日志和断点
+- **存储**：规则默认存储于 `chrome.storage.local`，可在设置中切换至 `sync`
+- **性能考量**：
+  - `run_at: document_start` + 首屏隐藏策略防止闪烁
+  - `MutationObserver` 100ms 去抖，批量更新 DOM
+  - `WeakMap` 记录原值，支持禁用规则后回滚
+
+---
 
 ## 📄 许可证
 
-项目尚未指定具体开源协议，如需商用或二次分发请先与作者确认。欢迎 Issue/PR 反馈与共建。
+本项目基于 [MIT License](./LICENSE) 开源。欢迎提交 Issue / PR！
